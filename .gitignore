@@ -13,3 +13,6 @@ dist/
 .DS_Store
 .vscode/
 .idea/
+
+# Packaged builds for the Chrome Web Store
+*.zip

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fb923c"/>
+      <stop offset="1" stop-color="#c2410c"/>
+    </linearGradient>
+  </defs>
+  <!-- Chrome Web Store icons sit inside a 96x96 visual area with 16px padding -->
+  <rect x="16" y="16" width="96" height="96" rx="22" fill="url(#bg)"/>
+  <!-- the highlight box the agent draws around an element -->
+  <rect x="31" y="34" width="50" height="30" rx="7" fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="9 6" opacity="0.9"/>
+  <!-- cursor -->
+  <path d="M60 52 L60 96 L71 85 L79 102 L87 98 L79 82 L95 82 Z" fill="#fff" stroke="#7c2d12" stroke-width="3" stroke-linejoin="round"/>
+  <!-- AI sparkle -->
+  <path d="M94 26 L97.5 35.5 L107 39 L97.5 42.5 L94 52 L90.5 42.5 L81 39 L90.5 35.5 Z" fill="#fff"/>
+</svg>
