@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Long Catalog</title>
+    <style>
+      body { font: 15px/1.5 system-ui, sans-serif; max-width: 760px; margin: 0 auto; padding: 16px; }
+      #result { position: sticky; top: 0; padding: 10px; background: #fef3c7; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <h1>Long Catalog (300 items)</h1>
+    <p id="result">Nothing clicked yet.</p>
+    <ul id="items"></ul>
+    <script>
+      // 300 products; one in the middle is special so tests can check that
+      // the agent still finds things in the skipped part of the list.
+      const list = document.getElementById("items");
+      for (let i = 1; i <= 300; i++) {
+        const name = i === 150 ? "Golden Ticket Deal" : `Product ${i}`;
+        const item = document.createElement("li");
+        const button = document.createElement("button");
+        button.textContent = `Buy ${name}`.replace("Buy Golden", "View Golden");
+        button.onclick = () => (document.getElementById("result").textContent = `Clicked: ${button.textContent}`);
+        item.append(`${name} `, button);
+        list.appendChild(item);
+      }
+    </script>
+  </body>
+</html>

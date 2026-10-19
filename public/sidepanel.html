@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>AI Browser Agent</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header>
+      <div class="title-row">
+        <h1>AI Browser Agent</h1>
+        <button id="new-chat" type="button">New chat</button>
+      </div>
+      <details id="settings">
+        <summary>Settings</summary>
+        <label for="api-key">Gemini API key</label>
+        <div class="row">
+          <input id="api-key" type="password" placeholder="AIza..." autocomplete="off" />
+          <button id="save-key" type="button">Save</button>
+        </div>
+        <p class="hint">Stored in this browser's extension storage only.</p>
+        <label for="model">Model (free tier)</label>
+        <select id="model"></select>
+      </details>
+    </header>
+
+    <main id="log" aria-live="polite"></main>
+
+    <section id="approval" class="approval" hidden>
+      <div class="approval-title">
+        <span id="approval-risk" class="badge"></span>
+        <span>Permission needed</span>
+      </div>
+      <p id="approval-action" class="approval-action"></p>
+      <p id="approval-reason" class="approval-reason"></p>
+      <div class="row">
+        <button id="approve" type="button" class="primary">Approve</button>
+        <button id="deny" type="button">Deny</button>
+      </div>
+    </section>
+
+    <section id="question" class="approval" hidden>
+      <div class="approval-title"><span>The agent needs your input</span></div>
+      <p id="question-text" class="approval-action"></p>
+      <div id="question-choices" class="choices"></div>
+      <form id="question-form" class="row">
+        <input id="question-answer" placeholder="Or type your answer…" autocomplete="off" />
+        <button type="submit" class="primary">Send</button>
+        <button id="question-dismiss" type="button">Skip</button>
+      </form>
+    </section>
+
+    <form id="command-form">
+      <textarea id="instruction" rows="2" placeholder='e.g. "Click the Login button"'></textarea>
+      <button id="run" type="submit" class="primary">Run</button>
+    </form>
+
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+# Dependencies and build output
+node_modules/
+dist/
+
+# Secrets: never commit API keys or credentials
+.env
+.env.*
+*.pem
+*.key
+
+# Logs and OS/editor clutter
+*.log
+.DS_Store
+.vscode/
+.idea/
