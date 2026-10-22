@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Environment Notes</title>
+    <style>body { font: 15px/1.5 system-ui, sans-serif; max-width: 760px; margin: 0 auto; padding: 16px; }</style>
+  </head>
+  <body>
+    <h1>Environment notes</h1>
+    <p>These are the admin panels for the merchant project.</p>
+    <p>Super admin panel:</p>
+    <p>https://super-adminmerc.trillab0608.xyz/</p>
+    <!-- Plain text below the URL: no links or buttons, which the agent used to be blind to. -->
+    <p>Login: ops-admin@example.test</p>
+    <p>Merchant panel: https://merchant.trillab0608.xyz/</p>
+    <p>Deploy window: Thursdays 18:00–20:00 IST</p>
+    <div id="filler"></div>
+    <script>
+      const filler = document.getElementById("filler");
+      for (let i = 1; i <= 400; i++) {
+        const p = document.createElement("p");
+        p.textContent = i === 371 ? "Escalation contact: Priya Shah, +91 98765 43210" : `Changelog entry ${i}: routine maintenance.`;
+        filler.appendChild(p);
+      }
+    </script>
+  </body>
+</html>

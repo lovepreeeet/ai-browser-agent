@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Frames, Shadow DOM and Re-rendering</title>
+    <style>
+      body { font: 15px/1.5 system-ui, sans-serif; margin: 0; display: flex; height: 100vh; }
+      aside { width: 260px; border-right: 1px solid #ddd; }
+      aside iframe { width: 100%; height: 100%; border: 0; }
+      main { flex: 1; padding: 16px; }
+      #result { padding: 10px; background: #fef3c7; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <aside>
+      <!-- 127.0.0.1 vs localhost = a different origin, like chat.google.com inside mail.google.com -->
+      <iframe id="chat-frame" title="Chat"></iframe>
+    </aside>
+    <main>
+      <h1>Inbox</h1>
+      <p id="result">Nothing clicked yet.</p>
+      <h2>Web component (shadow DOM)</h2>
+      <save-panel></save-panel>
+      <h2>Constantly re-rendered toolbar</h2>
+      <div id="toolbar"></div>
+    </main>
+    <script>
+      // Same server, but via 127.0.0.1 instead of localhost, so the frame is cross-origin.
+      document.getElementById("chat-frame").src = `http://127.0.0.1:${location.port}/chat-frame.html`;
+      customElements.define("save-panel", class extends HTMLElement {
+        connectedCallback() {
+          const root = this.attachShadow({ mode: "open" });
+          root.innerHTML = `<button>Shadow Save</button>`;
+          root.querySelector("button").onclick = () => (document.getElementById("result").textContent = "Shadow Save clicked");
+        }
+      });
+      // Re-render the toolbar every 500ms, replacing the button with a new node each time.
+      const render = () => {
+        document.getElementById("toolbar").innerHTML = `<button>Archive</button>`;
+        document.querySelector("#toolbar button").onclick = () => (document.getElementById("result").textContent = "Archive clicked");
+      };
+      render();
+      setInterval(render, 500);
+    </script>
+  </body>
+</html>

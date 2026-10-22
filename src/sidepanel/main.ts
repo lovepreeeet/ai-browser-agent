@@ -4,10 +4,11 @@
 // voice front-end next to it without touching the agent.
 
 import { createConversation, DEFAULT_MODEL, FREE_MODELS, runAgent, type AgentEvent } from "../agent/agent";
-import type { ApprovalRequest, Approver, AskUser } from "../agent/permissions";
+import type { ApprovalMode, ApprovalRequest, Approver, AskUser } from "../agent/permissions";
 
 const API_KEY_STORAGE_KEY = "geminiApiKey";
 const MODEL_STORAGE_KEY = "geminiModel";
+const APPROVAL_MODE_STORAGE_KEY = "approvalMode";
 
 const byId = <T extends HTMLElement>(id: string): T => {
   const element = document.getElementById(id);
@@ -25,6 +26,9 @@ const settings = byId<HTMLDetailsElement>("settings");
 const approval = byId<HTMLElement>("approval");
 const question = byId<HTMLElement>("question");
 const newChatButton = byId<HTMLButtonElement>("new-chat");
+const approvalModeSelect = byId<HTMLSelectElement>("approval-mode");
+
+const currentApprovalMode = (): ApprovalMode => (approvalModeSelect.value === "auto" ? "auto" : "manual");
 
 // The agent remembers earlier requests in this panel until "New chat".
 let conversation = createConversation();
@@ -171,7 +175,16 @@ form.addEventListener("submit", async (event) => {
   runButton.disabled = true;
   newChatButton.disabled = true;
   try {
-    await runAgent({ apiKey, model: modelSelect.value, instruction, conversation, approve: askForApproval, askUser: askQuestion, onEvent: showEvent });
+    await runAgent({
+      apiKey,
+      model: modelSelect.value,
+      instruction,
+      conversation,
+      approve: askForApproval,
+      askUser: askQuestion,
+      approvalMode: currentApprovalMode(),
+      onEvent: showEvent,
+    });
     addEntry("status", "Done.");
   } catch (error) {
     addEntry("error", error instanceof Error ? error.message : String(error));
@@ -180,6 +193,20 @@ form.addEventListener("submit", async (event) => {
     newChatButton.disabled = false;
     instructionInput.focus();
   }
+});
+
+approvalModeSelect.addEventListener("change", () => {
+  chrome.storage.local.set({ [APPROVAL_MODE_STORAGE_KEY]: currentApprovalMode() });
+  addEntry(
+    "status",
+    currentApprovalMode() === "auto"
+      ? "Auto-approve on: normal actions run without asking. High-impact ones (delete, buy, send, submit…) still ask. Applies from the next request."
+      : "Manual approval on: every action asks first. Applies from the next request.",
+  );
+});
+
+chrome.storage.local.get(APPROVAL_MODE_STORAGE_KEY).then((stored) => {
+  approvalModeSelect.value = stored[APPROVAL_MODE_STORAGE_KEY] === "auto" ? "auto" : "manual";
 });
 
 newChatButton.addEventListener("click", () => {

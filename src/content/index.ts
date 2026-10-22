@@ -3,7 +3,7 @@
 
 import type { ContentCommand, ContentResponse } from "../shared/protocol";
 import { clearHighlight, highlightElement } from "./highlight";
-import { describeById, findElements, getElement, getPageState, takeSnapshot } from "./dom-snapshot";
+import { describeById, findElements, getElement, getPageState, pageTextLines, takeSnapshot } from "./dom-snapshot";
 
 declare global {
   interface Window {
@@ -46,6 +46,8 @@ const runCommand = (command: ContentCommand): unknown | Promise<unknown> => {
       return typeText(command.id, command.text, command.submit);
     case "select":
       return selectOption(command.id, command.option);
+    case "readText":
+      return pageTextLines();
   }
 };
 

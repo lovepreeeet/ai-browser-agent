@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Chat sidebar</title>
+    <style>
+      body { font: 14px/1.4 system-ui, sans-serif; margin: 0; padding: 8px; }
+      .contact { padding: 8px; border-radius: 6px; cursor: pointer; }
+      .contact:hover { background: #eef2ff; }
+      #opened { margin-top: 8px; color: #15803d; }
+    </style>
+  </head>
+  <body>
+    <strong>Chat</strong>
+    <!-- Like Gmail's chat list: plain divs, no role, no label, clickable via JS. -->
+    <div class="contact" data-name="Harish Rana"><span>Harish Rana</span><br /><small>See you tomorrow</small></div>
+    <div class="contact" data-name="Priya Shah"><span>Priya Shah</span><br /><small>Thanks!</small></div>
+    <div class="contact" data-name="Team Updates"><span>Team Updates</span><br /><small>Standup moved</small></div>
+    <div id="opened"></div>
+    <script>
+      for (const contact of document.querySelectorAll(".contact")) {
+        contact.addEventListener("click", () => {
+          document.getElementById("opened").textContent = `Opened chat with ${contact.dataset.name}`;
+        });
+      }
+    </script>
+  </body>
+</html>

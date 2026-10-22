@@ -40,8 +40,19 @@ export const assessRisk = (kind: ToolKind, element?: ElementInfo): RiskLevel => 
   return "medium";
 };
 
-/** M1 policy: every page-changing action needs approval. M4 makes this configurable. */
-export const requiresApproval = (risk: RiskLevel): boolean => risk !== "low";
+/**
+ * The user's setting. "manual": ask before every page-changing action.
+ * "auto": run normal actions without asking. High-impact actions (delete, buy,
+ * send, submit, passwords…) ALWAYS ask, whatever the mode; the mode can't
+ * switch that off.
+ */
+export type ApprovalMode = "manual" | "auto";
+
+export const requiresApproval = (risk: RiskLevel, mode: ApprovalMode): boolean => {
+  if (risk === "high") return true;
+  if (risk === "medium") return mode === "manual";
+  return false;
+};
 
 const isHighImpact = (element: ElementInfo): boolean => {
   if (element.type === "password") return true;

@@ -24,9 +24,16 @@ const INTERACTIVE_SELECTOR = [
   "[role=textbox]",
   "[aria-haspopup]",
   "[onclick]",
+  "[role=treeitem]",
+  "[role=gridcell]",
   "[contenteditable=true]",
   "[contenteditable='']",
+  "[tabindex='0']",
 ].join(",");
+
+// Many apps (Gmail, Slack…) make plain <div>s clickable with JavaScript and give
+// them no role. The only outside sign is the pointer cursor, so we use that too.
+const POINTER_CANDIDATE_TAGS = new Set(["DIV", "SPAN", "LI", "TD", "TR", "IMG", "SVG", "IMAGE"]);
 
 const DIALOG_SELECTOR = "dialog[open], [role=dialog], [role=alertdialog], [aria-modal=true]";
 
@@ -38,17 +45,35 @@ const HEAD_COUNT = 50;
 const TAIL_COUNT = 25;
 const MAX_TEXT_LENGTH = 80;
 const MAX_OPTIONS = 25;
-const MAX_TEXT_LINES = 3000;
+const MAX_TEXT_LINES = 20000;
 
 // WeakMap so the same element keeps its ID across rescans within a page load.
 const idByElement = new WeakMap<Element, ElementId>();
 const elementById = new Map<ElementId, Element>();
+// Apps like Gmail re-render constantly, replacing nodes with identical copies.
+// Remembering each ID's fingerprint (tag + role + name) lets a replacement keep
+// the old ID, and lets an action on a stale ID find the new node.
+const fingerprintById = new Map<ElementId, string>();
+const idByFingerprint = new Map<string, ElementId>();
+// Fingerprints seen on more than one element at once (e.g. a "Delete" button on
+// every row). Matching by fingerprint could pick the wrong row, so never do it.
+const ambiguousFingerprints = new Set<string>();
 let nextId = 1;
 
 export const getElement = (id: ElementId): Element | null => {
   const element = elementById.get(id);
-  if (!element || !element.isConnected) return null;
-  return element;
+  if (element?.isConnected) return element;
+  return relocate(id);
+};
+
+const relocate = (id: ElementId): Element | null => {
+  const fingerprint = fingerprintById.get(id);
+  if (!fingerprint || ambiguousFingerprints.has(fingerprint)) return null;
+  const matches = scanInteractiveElements().filter((candidate) => fingerprintOf(candidate) === fingerprint);
+  const replacement = matches.length === 1 ? matches[0] : undefined;
+  if (!replacement) return null;
+  bind(replacement, id);
+  return replacement;
 };
 
 export const takeSnapshot = (): PageSnapshot => {
@@ -91,12 +116,33 @@ export const getPageState = (): PageState => ({
   url: location.href,
   title: document.title,
   dialogs: openDialogNames(),
-  textLines: document.body.innerText
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .slice(0, MAX_TEXT_LINES),
+  textLines: pageTextLines(),
 });
+
+/**
+ * All visible text on the page, one entry per non-empty line: paragraphs,
+ * messages, plain URLs, prices… not just interactive elements. innerText
+ * skips hidden elements and can't see into shadow roots, so we add those.
+ */
+export const pageTextLines = (): string[] => {
+  const chunks = [document.body?.innerText ?? ""];
+  collectShadowText(document, chunks);
+  return chunks
+    .flatMap((chunk) => chunk.split("\n"))
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, MAX_TEXT_LINES);
+};
+
+const collectShadowText = (root: Document | ShadowRoot, chunks: string[]): void => {
+  for (const element of root.querySelectorAll("*")) {
+    if (!element.shadowRoot) continue;
+    for (const child of element.shadowRoot.children) {
+      if (child instanceof HTMLElement && !["STYLE", "SCRIPT"].includes(child.tagName)) chunks.push(child.innerText);
+    }
+    collectShadowText(element.shadowRoot, chunks);
+  }
+};
 
 export const describeById = (id: ElementId): ElementInfo | null => {
   const element = getElement(id);
@@ -125,15 +171,57 @@ export const findElements = (query: string, limit = 5): ElementInfo[] => {
     .map(({ info }) => info);
 };
 
-const scanInteractiveElements = (): Element[] =>
-  Array.from(document.querySelectorAll(INTERACTIVE_SELECTOR)).filter(isVisible);
+const scanInteractiveElements = (): Element[] => {
+  const found: Element[] = [];
+  collectCandidates(document, found);
+  return found.filter(isVisible);
+};
+
+// Walks the whole tree in document order, including open shadow roots, which
+// document.querySelectorAll can't see into (web components, some Google UIs).
+const collectCandidates = (root: Document | ShadowRoot, found: Element[]): void => {
+  for (const element of root.querySelectorAll("*")) {
+    if (element.matches(INTERACTIVE_SELECTOR) || isPointerTarget(element)) found.push(element);
+    if (element.shadowRoot) collectCandidates(element.shadowRoot, found);
+  }
+};
+
+const isPointerTarget = (element: Element): boolean => {
+  if (!POINTER_CANDIDATE_TAGS.has(element.tagName.toUpperCase())) return false;
+  if (getComputedStyle(element).cursor !== "pointer") return false;
+  // Only the outermost pointer element counts, not every child inside it.
+  const parent = element.parentElement;
+  if (parent && getComputedStyle(parent).cursor === "pointer") return false;
+  if (element.parentElement?.closest(INTERACTIVE_SELECTOR)) return false;
+  return accessibleName(element).trim() !== "";
+};
+
+const fingerprintOf = (element: Element): string =>
+  [element.tagName, element.getAttribute("role") ?? "", truncate(accessibleName(element))].join("|");
+
+const bind = (element: Element, id: ElementId): void => {
+  idByElement.set(element, id);
+  elementById.set(id, element);
+};
 
 const assignId = (element: Element): ElementId => {
   const existing = idByElement.get(element);
   if (existing !== undefined) return existing;
+
+  const fingerprint = fingerprintOf(element);
+  const previousId = idByFingerprint.get(fingerprint);
+  if (previousId !== undefined) {
+    if (elementById.get(previousId)?.isConnected) ambiguousFingerprints.add(fingerprint);
+    else if (!ambiguousFingerprints.has(fingerprint)) {
+      bind(element, previousId); // an identical element was re-rendered: keep its ID
+      return previousId;
+    }
+  }
+
   const id = nextId++;
-  idByElement.set(element, id);
-  elementById.set(id, element);
+  bind(element, id);
+  fingerprintById.set(id, fingerprint);
+  idByFingerprint.set(fingerprint, id);
   return id;
 };
 
@@ -156,13 +244,14 @@ const describeElement = (element: Element): ElementInfo => {
     inViewport,
     inDialog: isInOpenDialog(element),
     covered: inViewport && isCovered(element),
+    frame: null, // filled in by the controller, which knows which frame answered
   };
 };
 
 // The name a screen reader would announce. For form fields this is usually the
 // <label>, which is what tells "Amount" apart from "Description".
 const accessibleName = (element: Element): string => {
-  const ariaLabel = element.getAttribute("aria-label");
+  const ariaLabel = element.getAttribute("aria-label") || element.getAttribute("data-tooltip");
   if (ariaLabel?.trim()) return ariaLabel;
 
   const labelledBy = element.getAttribute("aria-labelledby");
@@ -237,7 +326,10 @@ const isCovered = (element: Element): boolean => {
   const rect = element.getBoundingClientRect();
   const x = Math.min(Math.max(rect.left + rect.width / 2, 0), window.innerWidth - 1);
   const y = Math.min(Math.max(rect.top + rect.height / 2, 0), window.innerHeight - 1);
-  const topmost = document.elementFromPoint(x, y);
+  // Ask the element's own root: inside a shadow root, document.elementFromPoint
+  // would only return the shadow host and make everything look covered.
+  const root = element.getRootNode();
+  const topmost = (root instanceof ShadowRoot ? root : document).elementFromPoint(x, y);
   if (!topmost) return false;
   return !element.contains(topmost) && !topmost.contains(element) && topmost.closest("label") === null;
 };

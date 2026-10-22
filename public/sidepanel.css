@@ -53,6 +53,17 @@ h1 {
   font-size: 15px;
 }
 
+.header-controls {
+  display: flex;
+  gap: 6px;
+}
+
+#approval-mode {
+  flex: none;
+  width: auto;
+  padding: 4px 6px;
+}
+
 summary {
   cursor: pointer;
   color: var(--muted);

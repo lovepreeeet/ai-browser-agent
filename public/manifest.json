@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AI Browser Agent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "An AI agent that operates web pages through controlled, permission-gated tools.",
   "icons": {
     "16": "icons/icon-16.png",

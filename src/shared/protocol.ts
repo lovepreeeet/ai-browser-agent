@@ -26,6 +26,8 @@ export type ElementInfo = {
   inDialog: boolean;
   /** Something else (e.g. a popup overlay) is on top of it, so it can't be clicked right now. */
   covered: boolean;
+  /** Host of the embedded frame it lives in (e.g. "chat.google.com"), or null for the main page. */
+  frame: string | null;
 };
 
 /** Stands in for a run of elements left out of a long page's list. */
@@ -64,7 +66,8 @@ export type ContentCommand =
   | { type: "clearHighlight" }
   | { type: "click"; id: ElementId }
   | { type: "type"; id: ElementId; text: string; submit: boolean }
-  | { type: "select"; id: ElementId; option: string };
+  | { type: "select"; id: ElementId; option: string }
+  | { type: "readText" };
 
 export type ContentResponse =
   | { ok: true; data: unknown }

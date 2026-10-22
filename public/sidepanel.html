@@ -9,7 +9,13 @@
     <header>
       <div class="title-row">
         <h1>AI Browser Agent</h1>
-        <button id="new-chat" type="button">New chat</button>
+        <div class="header-controls">
+          <select id="approval-mode" title="High-impact actions (delete, buy, send, submit…) always ask, in both modes.">
+            <option value="manual">Approve: Manual</option>
+            <option value="auto">Approve: Auto</option>
+          </select>
+          <button id="new-chat" type="button">New chat</button>
+        </div>
       </div>
       <details id="settings">
         <summary>Settings</summary>

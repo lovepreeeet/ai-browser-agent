@@ -12,7 +12,7 @@
 
 import { ApiError, GoogleGenAI, type Content, type FunctionDeclaration, type Part } from "@google/genai";
 import { BrowserController } from "../browser/controller";
-import type { Approver, AskUser } from "./permissions";
+import type { ApprovalMode, Approver, AskUser } from "./permissions";
 import { StuckDetector } from "./stuck-detector";
 import { executeTool, toolSchemas } from "./tools";
 
@@ -73,6 +73,13 @@ When to ask:
 Conversation and long pages:
 - This is a chat: earlier messages are previous requests. Use them to understand follow-ups ("change it to 40"),
   but element ids from earlier requests are stale: call get_page_content before acting on a new request.
+- get_page_content lists interactive elements but only previews the page's text. To read or find information
+  on the page (text, messages, emails, prices, URLs, anything below the preview), use read_page_text: page
+  through it with start_line, or pass a query to search. When asked to look "below" or "after" something,
+  search for it and read the lines that follow.
+- If you only read part of the text, say so in your answer.
+- Some parts of a page are separate embedded frames (e.g. a chat sidebar); their elements are marked
+  (in frame <host>) and work like any other element.
 - On long pages the middle of the element list is skipped. If what you need isn't listed, use find_element
   before concluding it isn't there. If you report on the page's contents, mention that part of it was skipped
   and that the user can ask you to look for something specific.
@@ -107,6 +114,7 @@ type RunAgentOptions = {
   instruction: string;
   approve: Approver;
   askUser: AskUser;
+  approvalMode: ApprovalMode;
   onEvent: (event: AgentEvent) => void;
 };
 
@@ -130,7 +138,7 @@ export const runAgent = async (options: RunAgentOptions): Promise<void> => {
   }
 };
 
-const runLoop = async ({ apiKey, model, approve, askUser, onEvent }: RunAgentOptions, contents: Content[]) => {
+const runLoop = async ({ apiKey, model, approve, askUser, approvalMode, onEvent }: RunAgentOptions, contents: Content[]) => {
   // The tab is locked at the start so a tab switch mid-task can't redirect clicks.
   const browser = await BrowserController.forActiveTab();
   const ai = new GoogleGenAI({ apiKey, httpOptions: { timeout: REQUEST_TIMEOUT_MS } });
@@ -172,7 +180,8 @@ const runLoop = async ({ apiKey, model, approve, askUser, onEvent }: RunAgentOpt
       const name = call.name ?? "";
       const args = call.args ?? {};
       onEvent({ type: "tool_call", name, input: args });
-      const result = await executeTool(name, args, { browser, approve, askUser });
+      const result = await executeTool(name, args, { browser, approve, askUser, approvalMode });
+      if (result.autoApproved && result.action) onEvent({ type: "status", text: `✓ Auto-approved: ${result.action}` });
       onEvent({ type: "tool_result", name, content: result.content, isError: result.isError });
       stuck.record(result);
       if (result.notice && !shownNotices.has(result.notice)) {
